@@ -89,6 +89,7 @@ SEARCH_TERMS = {  # keynames are possible input arguments and values are actual 
     'performance_lte': 'performance_lte',
     'performance_gte': 'performance_gte',
     'project': 'project',
+    'batch': 'batch'
 }
 
 
@@ -560,6 +561,8 @@ class OneAlyx(OneAbstract):
         # get session json information as a dictionary from the alyx API
         try:
             ses = self.alyx.rest('sessions', 'read', id=eid)
+            # dataset_types here should be a dict with id, name
+            print(dataset_types, "DATASETTYPES TOSORT")
         except requests.HTTPError:
             raise requests.HTTPError('Session ' + eid + ' does not exist')
         # filter by dataset types
@@ -922,7 +925,7 @@ class OneAlyx(OneAbstract):
         if full:
             return dets
         # If it's not full return the normal output like from a one.search
-        det_fields = ["subject", "start_time", "number", "lab", "project",
+        det_fields = ["subject", "start_time", "number", "lab", "project", "batch",
                       "url", "task_protocol", "local_path"]
         out = {k: v for k, v in dets.items() if k in det_fields}
         out.update({'local_path': self.path_from_eid(eid)})
