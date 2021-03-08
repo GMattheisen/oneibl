@@ -18,6 +18,7 @@ EXCLUDED_EXTENSIONS = ['.flag', '.error', '.avi']
 REGISTRATION_GLOB_PATTERNS = ['alf/**/*.*',
                               'raw_behavior_data/**/_iblrig_*.*',
                               'raw_behavior_data/**/_mrsicflogel_*.*',
+                              'raw_behavior_data/**/2020*',
                               'raw_passive_data/**/_iblrig_*.*',
                               'raw_behavior_data/**/_iblmic_*.*',
                               'raw_video_data/**/_iblrig_*.*',
@@ -107,6 +108,7 @@ def register_session_raw_data(session_path, one=None, overwrite=False, dry=False
     :return: Alyx response: dictionary of registered files
     """
     session_path = Path(session_path)
+    one = ONE()
     eid = one.eid_from_path(session_path, use_cache=False)  # needs to make sure we're up to date
     # query the database for existing datasets on the session and allowed dataset types
     dsets = one.alyx.rest('datasets', 'list', session=eid)
