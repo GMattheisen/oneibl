@@ -74,15 +74,17 @@ def setup():
     prompt = "Enter the Alyx password for " + par["ALYX_LOGIN"] + '(leave empty to keep current):'
     par["ALYX_PWD"] = getpass(prompt) or cpar
 
-    cpar = _get_current_par("HTTP_DATA_SERVER_PWD", par_current)
-    prompt = "Enter the FlatIron HTTP password for " + par["HTTP_DATA_SERVER_LOGIN"] +\
-             '(leave empty to keep current): '
-    par["HTTP_DATA_SERVER_PWD"] = getpass(prompt) or cpar
+    #cpar = _get_current_par("HTTP_DATA_SERVER_PWD", par_current)
+    #prompt = "Enter the FlatIron HTTP password for " + par["HTTP_DATA_SERVER_LOGIN"] +\
+    #         '(leave empty to keep current): '
+    #par["HTTP_DATA_SERVER_PWD"] = getpass(prompt) or cpar
+    par["HTTP_DATA_SERVER_PWD"] = None
 
-    cpar = _get_current_par("FTP_DATA_SERVER_PWD", par_current)
-    prompt = "Enter the FlatIron FTP password for " + par["FTP_DATA_SERVER_LOGIN"] +\
-             '(leave empty to keep current): '
-    par["FTP_DATA_SERVER_PWD"] = getpass(prompt) or cpar
+    #cpar = _get_current_par("FTP_DATA_SERVER_PWD", par_current)
+    #prompt = "Enter the FlatIron FTP password for " + par["FTP_DATA_SERVER_LOGIN"] +\
+    #         '(leave empty to keep current): '
+    #par["FTP_DATA_SERVER_PWD"] = getpass(prompt) or cpar
+    par["FTP_DATA_SERVER_PWD"] = None
 
     # default to home dir if empty dir somehow made it here
     if len(par['CACHE_DIR']) == 0:

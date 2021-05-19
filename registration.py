@@ -14,17 +14,22 @@ from ibllib.io import flags, hashfile
 import ibllib.exceptions
 
 _logger = logging.getLogger('ibllib.alf')
-EXCLUDED_EXTENSIONS = ['.flag', '.error', '.avi']
+EXCLUDED_EXTENSIONS = ['.flag', '.errfor', '.avi']
 REGISTRATION_GLOB_PATTERNS = ['alf/**/*.*',
                               'raw_behavior_data/**/_iblrig_*.*',
-                              'raw_behavior_data/**/_mrsicflogel_*.*',
-                              'raw_passive_data/**/_iblrig_*.*',
+                              'raw_behavior_data/**/_mflab_*.*',
                               'raw_behavior_data/**/_iblmic_*.*',
+                              'raw_passive_data/**/_iblrig_*.*',
+                              'raw_passive_data/**/_mflab_*.*',
                               'raw_video_data/**/_iblrig_*.*',
                               'raw_video_data/**/_ibl_*.*',
+                              'raw_video_data/**/_mflab_*.*',
                               'raw_ephys_data/**/_iblrig_*.*',
                               'raw_ephys_data/**/_spikeglx_*.*',
                               'raw_ephys_data/**/_iblqc_*.*',
+                              'raw_ephys_data/**/_mflab_*.*',
+                              'raw_stimulus_data/**/_mflab_*.*',
+                              'raw_widefieldca_data/**/_mflab_*.*'
                               ]
 
 
@@ -204,11 +209,11 @@ class RegistrationClient:
             ses_path = Path(ses_path)
         # read meta data from the rig for the session from the task settings file
         settings_json_file = list(ses_path.glob(
-            '**/raw_behavior_data/_iblrig_taskSettings.raw*.json'))
+            '**/_mflab_taskSettings.raw*.json'))
         if not settings_json_file:
-            settings_json_file = list(ses_path.glob('**/_iblrig_taskSettings.raw*.json'))
+            settings_json_file = list(ses_path.glob('**/_mflab_taskSettings.raw*.json'))
             if not settings_json_file:
-                _logger.error(['could not find _iblrig_taskSettings.raw.json. Abort.'])
+                _logger.error(['could not find _mflab_taskSettings.raw.json. Abort.'])
                 return
             _logger.warning([f'Settings found in a strange place: {settings_json_file}'])
         else:
@@ -244,7 +249,8 @@ class RegistrationClient:
                             '{0:03d}'.format(int(md['SESSION_NUMBER'])))
 
         # if nothing found create a new session in Alyx
-        task_protocol = md['PROTOCOL'] + md['IBLRIG_VERSION_TAG']
+        task_protocol = md['PROTOCOL'] + md['VERSION_TAG']
+        dset_types = md['DATASET_TYPES']
         alyx_procedure = _alyx_procedure_from_task(task_protocol)
         if not session:
             ses_ = {'subject': subject['nickname'],
@@ -255,15 +261,15 @@ class RegistrationClient:
                     'type': 'Experiment',
                     'task_protocol': task_protocol,
                     'number': md['SESSION_NUMBER'],
-                    'batch': md['BATCH'],
                     'start_time': ibllib.time.date2isostr(start_time),
                     'end_time': ibllib.time.date2isostr(end_time) if end_time else None,
                     'n_correct_trials': n_correct_trials,
                     'n_trials': n_trials,
                     'data_dataset_session_related': md['DATASET_TYPES'],
+                    'dset_types':  md['DATASET_TYPES'],
                     'json': md,
                     }
-            print("Session to create: ", ses_)
+
             session = self.one.alyx.rest('sessions', 'create', data=ses_)
             if md['SUBJECT_WEIGHT']:
                 wei_ = {'subject': subject['nickname'],
@@ -291,7 +297,7 @@ class RegistrationClient:
         if not file_list:
             return
         # register all files that match the Alyx patterns, warn user when files are encountered
-        rename_files_compatibility(ses_path, md['IBLRIG_VERSION_TAG'])
+        rename_files_compatibility(ses_path, md['VERSION_TAG'])
         F = []  # empty list whose keys will be relative paths and content filenames
         md5s = []
         file_sizes = []
@@ -356,13 +362,13 @@ def _register_bool(fn, file_list):
 def _read_settings_json_compatibility_enforced(json_file):
     with open(json_file) as js:
         md = json.load(js)
-    if 'IBLRIG_VERSION_TAG' not in md.keys():
-        md['IBLRIG_VERSION_TAG'] = '3.2.3'
-    if not md['IBLRIG_VERSION_TAG']:
+    if 'VERSION_TAG' not in md.keys():
+        md['VERSION_TAG'] = '1.0.0'
+    if not md['VERSION_TAG']:
         _logger.warning("You appear to be on an untagged version...")
         return md
     # 2018-12-05 Version 3.2.3 fixes (permanent fixes in IBL_RIG from 3.2.4 on)
-    if version.le(md['IBLRIG_VERSION_TAG'], '3.2.3'):
+    if version.le(md['VERSION_TAG'], '1.0.0'):
         if 'LAST_TRIAL_DATA' in md.keys():
             md.pop('LAST_TRIAL_DATA')
         if 'weighings' in md['SUBJECT_EXTRA'].keys():
@@ -383,7 +389,7 @@ def _read_settings_json_compatibility_enforced(json_file):
 def rename_files_compatibility(ses_path, version_tag):
     if not version_tag:
         return
-    if version.le(version_tag, '3.2.3'):
+    if version.le(version_tag, '1.0.0'):
         task_code = ses_path.glob('**/_ibl_trials.iti_duration.npy')
         for fn in task_code:
             fn.replace(fn.parent.joinpath('_ibl_trials.itiDuration.npy'))
@@ -397,6 +403,7 @@ def _get_session_times(fn, md, ses_data):
     Get session start and end time from the Bpod data
     """
     start_time = ibllib.time.isostr2date(md['SESSION_DATETIME'])
+    
     if not ses_data:
         return start_time, None
     c = 0

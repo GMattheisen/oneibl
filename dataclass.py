@@ -55,7 +55,8 @@ class SessionDataInfo:
         # if no dataset is specified download only the root alf folder
         if not dataset_types:
             dsets = [d for d in dsets if d['data_url'] and
-                     'alf' in Path(d['data_url']).parts and
+                     #'alf' in Path(d['data_url']).parts and
+                     'ALF' in Path(d['data_url']).parts and
                      'raw_ephys_data' not in Path(d['data_url']).parts]
         elif dataset_types == ['__all__']:
             dsets = [d for d in dsets if d['data_url']]
@@ -81,7 +82,7 @@ class SessionDataInfo:
         if df.size == 0:
             return SessionDataInfo()
         fcn_local_path = lambda rec: Path(cache_dir).joinpath(  # noqa
-            rec['lab'], 'public', 'projects', rec['project'], rec['batch'], 'DAQ', rec['subject'], rec['start_time'].isoformat()[:10],
+            rec['lab'], 'public', 'projects', rec['project'],  'ALF', rec['subject'], rec['start_time'].isoformat()[:10],
         #fcn_local_path = lambda rec: Path(cache_dir).joinpath(  # noqa
         #   rec['lab'], 'Subjects', rec['subject'], rec['start_time'].isoformat()[:10],
             

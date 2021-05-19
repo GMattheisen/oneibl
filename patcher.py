@@ -175,8 +175,7 @@ class Patcher(abc.ABC):
                                                       'public',
                                                       'projects',
                                                       ses_details['project'],
-                                                      ses_details['batch'],
-                                                      'DAQ',
+                                                      'ALF',
                                                       ses_details['subject'],
                                                       ses_details['start_time'][:10],
                                                       str(ses_details['number']).zfill(3))

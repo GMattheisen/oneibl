@@ -83,13 +83,13 @@ SEARCH_TERMS = {  # keynames are possible input arguments and values are actual 
     'lab': 'lab',
     'task': 'task_protocol',
     'task_protocol': 'task_protocol',
+    'dset_types': 'dset_types',
     'number': 'number',
     'location': 'location',
     'lab_location': 'location',
     'performance_lte': 'performance_lte',
     'performance_gte': 'performance_gte',
-    'project': 'project',
-    'batch': 'batch'
+    'project': 'project'
 }
 
 
@@ -109,7 +109,7 @@ def _ses2pandas(ses, dtypes=None):
     uuid_fields = ['id', 'eid']
     join = {'subject': ses['subject'], 'lab': ses['lab'], 'eid': ses['url'][-36:],
             'start_time': np.datetime64(ses['start_time']), 'number': ses['number'],
-            'task_protocol': ses['task_protocol']}
+            'task_protocol': ses['task_protocol'], 'dset_types': ses['dset_types']}
     col = parquet.rec2col(rec, include=include, uuid_fields=uuid_fields, join=join,
                           types={'file_size': np.double}).to_df()
     return col
@@ -235,7 +235,7 @@ class OneAbstract(abc.ABC):
             ses = self._cache.iloc[ic]
             return Path(self._par.CACHE_DIR).joinpath(
                 #ses['lab'], 'Subjects', ses['subject'], ses['start_time'].isoformat()[:10],
-                ses['lab'], 'public', 'projects', ses['project'], ses['batch'], 'DAQ', ses['subject'], ses['start_time'].isoformat()[:10],
+                ses['lab'], 'public', 'projects', ses['project'], 'ALF', ses['subject'], ses['start_time'].isoformat()[:10],
                 str(ses['number']).zfill(3))
 
     def eid_from_path(self, path_obj):
@@ -537,7 +537,7 @@ class OneAlyx(OneAbstract):
                 id['lab'],
                 #'Subjects', id['subject'],
                 'public', 'projects',
-                id['project'], id['batch'], 'DAQ',
+                id['project'], 'ALF',
                 id['subject'],
                 id['start_time'][:10],
                 ('%03d' % id['number']))
@@ -562,7 +562,6 @@ class OneAlyx(OneAbstract):
         try:
             ses = self.alyx.rest('sessions', 'read', id=eid)
             # dataset_types here should be a dict with id, name
-            print(dataset_types, "DATASETTYPES TOSORT")
         except requests.HTTPError:
             raise requests.HTTPError('Session ' + eid + ' does not exist')
         # filter by dataset types
@@ -712,7 +711,7 @@ class OneAlyx(OneAbstract):
             for s in ses:
                 if all([s.get('lab'), s.get('subject'), s.get('start_time')]):
                     s['local_path'] = str(Path(self._par.CACHE_DIR, s['lab'], 'public', 'projects',
-                                               s['project'], s['batch'], 'DAQ', s['subject'], s['start_time'][:10],
+                                               s['project'], 'ALF', s['subject'], s['start_time'][:10],
                                                str(s['number']).zfill(3)))
                 else:
                     s['local_path'] = None
@@ -869,7 +868,7 @@ class OneAlyx(OneAbstract):
             return None
         else:
             return Path(self._par.CACHE_DIR).joinpath(
-                ses[0]['lab'], 'public', 'projects', ses[0]['project'], ses[0]['batch'], 'DAQ', ses[0]['subject'], ses[0]['start_time'][:10],
+                ses[0]['lab'], 'public', 'projects', ses[0]['project'], 'ALF', ses[0]['subject'], ses[0]['start_time'][:10],
                 str(ses[0]['number']).zfill(3))
 
     def eid_from_path(self, path_obj: Union[str, Path], use_cache: bool = True) -> Listable(Path):
@@ -925,8 +924,8 @@ class OneAlyx(OneAbstract):
         if full:
             return dets
         # If it's not full return the normal output like from a one.search
-        det_fields = ["subject", "start_time", "number", "lab", "project", "batch",
-                      "url", "task_protocol", "local_path"]
+        det_fields = ["subject", "start_time", "number", "lab", "project",
+                      "url", "task_protocol", "local_path", "dset_types"]
         out = {k: v for k, v in dets.items() if k in det_fields}
         out.update({'local_path': self.path_from_eid(eid)})
         return out
