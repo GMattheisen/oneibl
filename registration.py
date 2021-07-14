@@ -16,6 +16,7 @@ import ibllib.exceptions
 _logger = logging.getLogger('ibllib.alf')
 EXCLUDED_EXTENSIONS = ['.flag', '.errfor', '.avi']
 REGISTRATION_GLOB_PATTERNS = ['alf/**/*.*',
+                              '_mflab_*.*',
                               'raw_behavior_data/**/_iblrig_*.*',
                               'raw_behavior_data/**/_mflab_*.*',
                               'raw_behavior_data/**/_iblmic_*.*',
@@ -112,6 +113,7 @@ def register_session_raw_data(session_path, one=None, overwrite=False, dry=False
     :return: Alyx response: dictionary of registered files
     """
     session_path = Path(session_path)
+    one = ONE()
     eid = one.eid_from_path(session_path, use_cache=False)  # needs to make sure we're up to date
     # query the database for existing datasets on the session and allowed dataset types
     dsets = one.alyx.rest('datasets', 'list', session=eid)
@@ -231,6 +233,7 @@ class RegistrationClient:
                                               date_range=md['SESSION_DATE'],
                                               number=md['SESSION_NUMBER'],
                                               details=True)
+        print('session if exists', session_id, session)
         try:
             user = self.one.alyx.rest('users', 'read', id=md["PROTOCOL_CREATOR"][0])
         except Exception as e:
@@ -269,17 +272,41 @@ class RegistrationClient:
                     'dset_types':  md['DATASET_TYPES'],
                     'json': md,
                     }
-
+            
             session = self.one.alyx.rest('sessions', 'create', data=ses_)
-            if md['SUBJECT_WEIGHT']:
+
+            #if md['SUBJECT_WEIGHT']:
+            if 'SUBJECT_WEIGHT' in md.keys():
                 wei_ = {'subject': subject['nickname'],
                         'date_time': ibllib.time.date2isostr(start_time),
                         'weight': md['SUBJECT_WEIGHT'],
                         'user': username
                         }
                 self.one.alyx.rest('weighings', 'create', data=wei_)
+                
         else:  # TODO: if session exists and no json partial_upgrade it
-            session = self.one.alyx.rest('sessions', 'read', id=session_id[0])
+            print('session exists, lets update it')
+            ses_ = {'subject': subject['nickname'],
+                    'users': [username],
+                    'procedures': [] if alyx_procedure is None else [alyx_procedure],
+                    'lab': subject['lab'],
+                    'project': md['PROJECT'],
+                    'type': 'Experiment',
+                    'task_protocol': task_protocol,
+                    'number': md['SESSION_NUMBER'],
+                    'start_time': ibllib.time.date2isostr(start_time),
+                    'end_time': ibllib.time.date2isostr(end_time) if end_time else None,
+                    'n_correct_trials': n_correct_trials,
+                    'n_trials': n_trials,
+                    'data_dataset_session_related': md['DATASET_TYPES'],
+                    'dset_types':  md['DATASET_TYPES'],
+                    'json': md,
+                    }
+            print('ses', ses_)
+            #session = self.one.alyx.rest('sessions', 'read', id=session_id[0])
+            print('session_id', session_id[0])
+            session = self.one.alyx.rest('sessions', 'partial_update', id=session_id[0], data=ses_)
+            #can try update as well
 
         _logger.info(session['url'] + ' ')
         # create associated water administration if not found
